@@ -1,0 +1,38 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  username  String    @unique @db.VarChar(255)
+  email     String    @unique @db.VarChar(255)
+  passwordHash String   @db.Text
+  
+  roles     String[]  @default(["public_user"]) 
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  ownedDocuments Document[] 
+}
+
+model Document {
+  id        String    @id @default(uuid())
+  title     String    @db.VarChar(255)
+  isPublic  Boolean   @default(false)
+  
+  content   Json       @default("[]") 
+  
+  permissions Json     @default("{}") 
+
+  ownerId   String    
+  owner     User      @relation(fields: [ownerId], references: [id]) 
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
