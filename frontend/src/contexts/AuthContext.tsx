@@ -3,10 +3,10 @@ import { createContext, useState, useContext, useEffect, ReactNode } from "react
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<boolean>; 
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  userId: string | null; 
-  loading: boolean; 
+  userId: string | null;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -17,8 +17,8 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [userId, setUserId] = useState<string | null>(null); 
-  const [loading, setLoading] = useState<boolean>(true); 
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     const res = await fetch("/api/auth/login", {
@@ -27,10 +27,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       body: JSON.stringify({ username, password }),
       credentials: "include",
     });
+
     if (res.ok) {
-      await checkAuth();
+      const data = await res.json(); 
+      setIsAuthenticated(true); 
+      setUserId(data.userId);  
+      setLoading(false);
       return true;
     } else {
+      setIsAuthenticated(false);
+      setUserId(null);
+      setLoading(false); 
       return false;
     }
   };
@@ -48,7 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (res.ok) {
         const data = await res.json();
         setIsAuthenticated(true);
-        setUserId(data.userId); 
+        setUserId(data.userId);
       } else {
         setIsAuthenticated(false);
         setUserId(null);
@@ -58,7 +65,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsAuthenticated(false);
       setUserId(null);
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
