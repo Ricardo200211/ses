@@ -1,77 +1,41 @@
-"use server"; 
+"use server";
 
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { NextResponse } from "next/server"; 
+import { NextRequest, NextResponse } from "next/server";
+import { verifyAuthToken } from "@/lib/auth"; 
+import { serialize } from "cookie"; 
 
-function extractTokenFromCookie(cookieHeader: string | null): string | null {
-  if (!cookieHeader) {
-    return null; 
-  }
-
-  const tokenCookie = cookieHeader.split("; ").find((c) => c.startsWith("token="));
-
-  if (tokenCookie) {
-    const tokenValue = tokenCookie.split("=")[1];
-    
-    if (tokenValue === undefined || tokenValue.trim() === "") {
-        return null;
-    }
-    return tokenValue;
-  }
-
-  return null;
-}
-
-function createResponse(
-  body: Record<string, unknown>,
-  status: number,
-  headers: Record<string, string> = { "Content-Type": "application/json" }
-): NextResponse { 
-  return new NextResponse(JSON.stringify(body), { status, headers });
-}
-
-function verifyToken(token: string, secret: string): JwtPayload {
-  return jwt.verify(token, secret) as JwtPayload;
-}
-
-export async function GET(req: Request): Promise<Response> { 
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
-    const cookieHeader = req.headers.get("cookie");
-    const token = extractTokenFromCookie(cookieHeader);
+    const token = req.cookies.get('token')?.value; 
 
-    if (!token || typeof token !== "string" || token.trim() === "") {
-      return createResponse(
-        { error: "Unauthorized - Token not found or invalid" },
-        401
+    if (!token) {
+      return NextResponse.json({ isAuthenticated: false, userId: null }, { status: 401 });
+    }
+
+    try {
+      const decodedToken = verifyAuthToken(token);
+
+      return NextResponse.json({ isAuthenticated: true, userId: decodedToken.userId }, { status: 200 });
+
+    } catch (tokenError: unknown) { 
+      console.error("Failed to verify token:", tokenError instanceof Error ? tokenError.message : tokenError);
+
+      const clearedCookie = serialize("token", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 0,
+      });
+
+      return NextResponse.json(
+        { isAuthenticated: false, userId: null, error: "Token invalid or expired" },
+        { status: 401, headers: { "Set-Cookie": clearedCookie } }
       );
     }
 
-    let decoded: JwtPayload;
-    try {
-      if (!process.env.JWT_SECRET) { 
-        throw new Error("JWT_SECRET is not defined.");
-      }
-      decoded = verifyToken(token, process.env.JWT_SECRET);
-    } catch (error: any) {
-      if (error.name === "TokenExpiredError") {
-        return createResponse({ error: "Token Expired" }, 401);
-      } else if (error.name === "JsonWebTokenError") {
-        return createResponse({ error: "Invalid Token" }, 401);
-      }
-      console.log("Error during token verification:", error);
-      return createResponse({ error: "Internal Server error" }, 500);
-    }
-
-    if (!decoded || !decoded.userId || typeof decoded.userId !== 'string') { 
-      return createResponse({ error: "Invalid token structure or missing userId" }, 401);
-    }
-
-    return createResponse(
-      { authenticated: true, userId: decoded.userId as string }, 
-      200
-    );
-  } catch (error) {
-    console.error("Error in /api/auth/check:", error);
-    return createResponse({ error: "Internal Server Error" }, 500);
+  } catch (error: unknown) { 
+    console.error("Error in auth check route:", error instanceof Error ? error.message : error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

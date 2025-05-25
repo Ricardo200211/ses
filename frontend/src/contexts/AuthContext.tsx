@@ -18,26 +18,31 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true); 
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-      credentials: "include",
-    });
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+        credentials: "include",
+      });
 
-    if (res.ok) {
-      const data = await res.json(); 
-      setIsAuthenticated(true); 
-      setUserId(data.userId);  
-      setLoading(false);
-      return true;
-    } else {
+      if (res.ok) {
+        const data = await res.json(); 
+        setIsAuthenticated(true); 
+        setUserId(data.userId);  
+        return true;
+      } else {
+        setIsAuthenticated(false);
+        setUserId(null);
+        return false;
+      }
+    } catch (error: unknown) { 
+      console.error("Login API call failed:", error instanceof Error ? error.message : error);
       setIsAuthenticated(false);
       setUserId(null);
-      setLoading(false); 
       return false;
     }
   };
@@ -49,7 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const checkAuth = async (): Promise<void> => {
-    setLoading(true); 
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/check", { credentials: "include" });
       if (res.ok) {
@@ -60,12 +65,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsAuthenticated(false);
         setUserId(null);
       }
-    } catch (error) {
-      console.error("Error checking auth status:", error);
+    } catch (error: unknown) {
+      console.error("Error checking auth status:", error instanceof Error ? error.message : error);
       setIsAuthenticated(false);
       setUserId(null);
     } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
 

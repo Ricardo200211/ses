@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server';
 import prisma from "@/lib/prisma";
 import { comparePassword, generateAuthToken } from "@/lib/auth";
-import { serialize } from "cookie";
+import { serialize } from "cookie"; 
 
 interface UserLogin {
   id: string;
@@ -27,7 +27,7 @@ async function findUserByUsername(username: string): Promise<UserLogin | null> {
   const user = await prisma.user.findUnique({
     where: { username: username },
   });
-  return user as UserLogin | null;
+  return user as UserLogin | null; 
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -54,9 +54,9 @@ export async function POST(req: Request): Promise<Response> {
 
     const token = generateAuthToken(user.id, user.roles);
 
-    const cookie = serialize("jwtToken", token, {
+    const cookie = serialize("token", token, { 
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", 
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60,
@@ -66,8 +66,8 @@ export async function POST(req: Request): Promise<Response> {
       status: 200,
       headers: { "Set-Cookie": cookie },
     });
-  } catch (error: unknown) {
-    console.error("Error in login route:", error);
+  } catch (error: unknown) { 
+    console.error("Error in login route:", error instanceof Error ? error.message : error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
