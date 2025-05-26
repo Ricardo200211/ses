@@ -3,43 +3,62 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" 
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+enum UserRoleType {
+  ADMIN
+  PUBLIC_USER
+}
+
 model User {
-  id           String             @id @default(uuid())
-  username     String             @unique 
-  email        String             @unique
-  password     String             
-  roles        String[]           @default(["public_user"]) 
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id                String              @id @default(uuid())
+  username          String              @unique
+  email             String              @unique
+  password          String
+  roles             String[]            @default(["public_user"])
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
-  documents    Document[]
-  permissions  DocumentPermission[]
+  documents         Document[]
+  permissions       DocumentPermission[]
+  sectionPermissions SectionPermission[]
 }
 
-model Document {
-  id         String             @id @default(uuid())
-  title      String
-  content    String             @db.Text
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  userId     String
-
-  user       User               @relation(fields: [userId], references: [id])
-
-  isPublic   Boolean            @default(false)
-  publicEdit Boolean            @default(false)
-
-  permissions DocumentPermission[]
-}
-
-enum DocumentRole {
+enum AccessRole {
   OWNER
   EDITOR
   VIEWER
+}
+
+model Document {
+  id               String               @id @default(uuid())
+  title            String
+  content          String               @db.Text
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  userId           String
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  isPublic         Boolean              @default(false)
+  publicAccessRole AccessRole?
+
+  permissions      DocumentPermission[]
+  sections         DocumentSection[]
+}
+
+model DocumentSection {
+  id          String          @id @default(uuid())
+  documentId  String
+  document    Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  sectionId   String
+  content     String          @db.Text
+  order       Int
+
+  permissions SectionPermission[]
+
+  @@unique([documentId, sectionId])
 }
 
 model DocumentPermission {
@@ -48,7 +67,18 @@ model DocumentPermission {
   document   Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
   userId     String
   user       User         @relation(fields: [userId], references: [id])
-  role       DocumentRole
+  role       AccessRole
 
   @@unique([documentId, userId])
+}
+
+model SectionPermission {
+  id          String          @id @default(uuid())
+  sectionId   String
+  section     DocumentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  role        AccessRole
+
+  @@unique([sectionId, userId])
 }

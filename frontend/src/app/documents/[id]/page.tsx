@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'; 
 import { Editor } from '@tinymce/tinymce-react';
 import { Editor as TinyMCEEditor } from 'tinymce';
 import Link from 'next/link';
@@ -15,7 +15,7 @@ interface Document {
   updatedAt: string;
   userId: string;
   isPublic: boolean;
-  publicEdit: boolean;
+  publicAccessRole: 'VIEWER' | 'EDITOR' | null;
   user: {
     id: string;
     username: string;
@@ -87,7 +87,7 @@ export default function DocumentDetailsPage() {
       };
       fetchDocument();
     }
-  }, [id, isAuthenticated, authLoading, router, logout, document]);
+  }, [id, isAuthenticated, authLoading, router, logout, document]); 
 
   const canEdit = ['OWNER', 'EDITOR', 'PUBLIC_EDITOR'].includes(userRole);
   const canView = ['OWNER', 'EDITOR', 'VIEWER', 'PUBLIC_VIEWER', 'PUBLIC_EDITOR'].includes(userRole);
@@ -127,8 +127,8 @@ export default function DocumentDetailsPage() {
         throw new Error(data.error || 'Failed to save document.');
       }
 
-      setDocument(data);
-      setIsEditing(false);
+      setDocument(data.document); 
+      setIsEditing(false); 
     } catch (err: unknown) {
       console.error('Error saving document:', err);
       setPageError(err instanceof Error ? err.message : 'An unknown error occurred while saving.');
@@ -164,7 +164,7 @@ export default function DocumentDetailsPage() {
         throw new Error(data.error || 'Failed to delete document.');
       }
 
-      router.push('/');
+      router.push('/'); 
     } catch (err: unknown) {
       console.error('Error deleting document:', err);
       setPageError(err instanceof Error ? err.message : 'An unknown error occurred while deleting.');
@@ -241,6 +241,7 @@ export default function DocumentDetailsPage() {
                 type="text"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
+                required
                 className="w-full p-3 border border-gray-300 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
               />
             </div>

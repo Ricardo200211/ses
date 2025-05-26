@@ -15,6 +15,8 @@ interface Document {
     username: string;
     email: string;
   };
+  isPublic: boolean;
+  publicAccessRole: 'VIEWER' | 'EDITOR' | null;
 }
 
 export default function HomePage() {

@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAuthToken } from "@/lib/auth";
+import { AccessRole } from "@prisma/client";
 
 async function getAuthenticatedUserId(req: NextRequest): Promise<string | null> {
   const token = req.cookies.get('token')?.value;
   if (!token) return null;
   try {
     const decodedToken = verifyAuthToken(token);
-    return decodedToken.userId;
+    if (typeof decodedToken === 'object' && decodedToken !== null && 'userId' in decodedToken) {
+        return decodedToken.userId as string;
+    }
+    return null;
   } catch (error) {
     console.error("Token verification failed:", error);
     return null;
@@ -53,7 +57,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(documents, { status: 200 });
   } catch (error: unknown) {
-    console.error("Error fetching documents:", error instanceof Error ? error.message : error);
+    console.error("Error fetching documents:", error instanceof Error ? error.message : String(error));
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -77,10 +81,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         title,
         content: content || '',
         userId: authenticatedUserId,
+        isPublic: false,
+        publicAccessRole: null,
         permissions: {
           create: {
             userId: authenticatedUserId,
-            role: 'OWNER',
+            role: AccessRole.OWNER,
           },
         },
       },
@@ -88,7 +94,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(newDocument, { status: 201 });
   } catch (error: unknown) {
-    console.error("Error creating document:", error instanceof Error ? error.message : error);
+    console.error("Error creating document:", error instanceof Error ? error.message : String(error));
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
