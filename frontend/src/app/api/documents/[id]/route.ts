@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAuthToken } from "@/lib/auth";
 import { AccessRole } from "@prisma/client";
+import DOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
+
+const { window } = new JSDOM('');
+const dompurify = DOMPurify(window);
 
 async function getAuthenticatedUserId(req: NextRequest): Promise<string | null> {
   const token = req.cookies.get('token')?.value;
@@ -79,7 +84,9 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden: Not authorized to view this document." }, { status: 403 });
     }
 
-    return NextResponse.json({ document, userRole }, { status: 200 });
+    const sanitizedContent = document.content ? dompurify.sanitize(document.content) : '';
+
+    return NextResponse.json({ document: { ...document, content: sanitizedContent }, userRole }, { status: 200 });
   } catch (error: unknown) {
     console.error("Error fetching document:", error instanceof Error ? error.message : error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -133,16 +140,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             }
         }
 
+        const sanitizedContent = content ? dompurify.sanitize(content) : '';
+
         const updatedDocument = await prisma.document.update({
             where: { id: id },
             data: {
                 title: title,
-                content: content,
+                content: sanitizedContent,
                 updatedAt: new Date(),
             },
         });
 
-        return NextResponse.json({ message: "Document updated successfully", document: updatedDocument }, { status: 200 });
+        return NextResponse.json({ message: "Document updated successfully", document: { ...updatedDocument, content: sanitizedContent } }, { status: 200 });
 
     } catch (error: unknown) {
         console.error("Error updating document:", error instanceof Error ? error.message : String(error));

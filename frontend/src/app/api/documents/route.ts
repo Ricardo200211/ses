@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAuthToken } from "@/lib/auth";
 import { AccessRole } from "@prisma/client";
+import DOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
+
+const { window } = new JSDOM('');
+const dompurify = DOMPurify(window);
 
 async function getAuthenticatedUserId(req: NextRequest): Promise<string | null> {
   const token = req.cookies.get('token')?.value;
@@ -55,7 +60,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       },
     });
 
-    return NextResponse.json(documents, { status: 200 });
+    const sanitizedDocuments = documents.map(doc => ({
+      ...doc,
+      content: doc.content ? dompurify.sanitize(doc.content) : '',
+    }));
+
+    return NextResponse.json(sanitizedDocuments, { status: 200 });
   } catch (error: unknown) {
     console.error("Error fetching documents:", error instanceof Error ? error.message : String(error));
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -76,10 +86,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
+    const sanitizedContent = content ? dompurify.sanitize(content) : '';
+
     const newDocument = await prisma.document.create({
       data: {
         title,
-        content: content || '',
+        content: sanitizedContent,
         userId: authenticatedUserId,
         isPublic: false,
         publicAccessRole: null,
@@ -92,7 +104,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
     });
 
-    return NextResponse.json(newDocument, { status: 201 });
+    return NextResponse.json({ ...newDocument, content: sanitizedContent }, { status: 201 });
   } catch (error: unknown) {
     console.error("Error creating document:", error instanceof Error ? error.message : String(error));
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

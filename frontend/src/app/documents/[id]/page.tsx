@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext'; 
+import { useAuth } from '@/contexts/AuthContext';
 import { Editor } from '@tinymce/tinymce-react';
 import { Editor as TinyMCEEditor } from 'tinymce';
 import Link from 'next/link';
+import DOMPurify from 'dompurify';
 
 interface Document {
   id: string;
@@ -74,7 +75,8 @@ export default function DocumentDetailsPage() {
             throw new Error(responseData.error || 'Failed to load document.');
           }
 
-          setDocument(responseData.document);
+          const sanitizedContent = responseData.document.content ? DOMPurify.sanitize(responseData.document.content) : '';
+          setDocument({ ...responseData.document, content: sanitizedContent });
           setUserRole(responseData.userRole);
           setEditTitle(responseData.document.title);
 
@@ -87,7 +89,7 @@ export default function DocumentDetailsPage() {
       };
       fetchDocument();
     }
-  }, [id, isAuthenticated, authLoading, router, logout, document]); 
+  }, [id, isAuthenticated, authLoading, router, logout, document]);
 
   const canEdit = ['OWNER', 'EDITOR', 'PUBLIC_EDITOR'].includes(userRole);
   const canView = ['OWNER', 'EDITOR', 'VIEWER', 'PUBLIC_VIEWER', 'PUBLIC_EDITOR'].includes(userRole);
@@ -127,8 +129,10 @@ export default function DocumentDetailsPage() {
         throw new Error(data.error || 'Failed to save document.');
       }
 
-      setDocument(data.document); 
-      setIsEditing(false); 
+      const sanitizedUpdatedContent = data.document.content ? DOMPurify.sanitize(data.document.content) : '';
+      setDocument({ ...data.document, content: sanitizedUpdatedContent });
+      
+      setIsEditing(false);
     } catch (err: unknown) {
       console.error('Error saving document:', err);
       setPageError(err instanceof Error ? err.message : 'An unknown error occurred while saving.');
@@ -164,7 +168,7 @@ export default function DocumentDetailsPage() {
         throw new Error(data.error || 'Failed to delete document.');
       }
 
-      router.push('/'); 
+      router.push('/');
     } catch (err: unknown) {
       console.error('Error deleting document:', err);
       setPageError(err instanceof Error ? err.message : 'An unknown error occurred while deleting.');
