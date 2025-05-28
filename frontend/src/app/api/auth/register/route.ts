@@ -11,7 +11,7 @@ interface RegisterInput {
 }
 
 function validateInput(username: string, email: string, password: string): { valid: boolean; error?: string } {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
   if (!email || !emailRegex.test(email)) {
     return { valid: false, error: "Invalid email format" };
   }
