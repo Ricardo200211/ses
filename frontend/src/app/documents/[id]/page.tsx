@@ -42,7 +42,7 @@ export default function DocumentDetailsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const editorRef = useRef<TinyMCEEditor | null>(null);
-
+  const cleanHTML = DOMPurify.sanitize(document.content || 'This document has no content.');
   useEffect(() => {
     if (authLoading) return;
 
@@ -303,10 +303,10 @@ export default function DocumentDetailsPage() {
                     Owned by: <span className="font-semibold">{document.user.username || document.user.email}</span>
                 </p>
             )}
-            <div
+              <div
                 className="prose max-w-none text-gray-700 text-lg mb-6"
-                dangerouslySetInnerHTML={{ __html: document.content || 'This document has no content.' }}
-            />
+                dangerouslySetInnerHTML={{ __html: cleanHTML }}
+              />
             <p className="text-gray-500 text-sm mb-6">
               Created On: {new Date(document.createdAt).toLocaleDateString()} | Last Updated: {new Date(document.updatedAt).toLocaleDateString()}
             </p>
