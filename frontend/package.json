@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.8.2",
-    "@tinymce/tinymce-react": "^6.1.0",
+    "@tinymce/tinymce-react": "^6.2.0",
     "bcryptjs": "^3.0.2",
     "cookie": "^1.0.2",
     "dompurify": "^3.2.6",
